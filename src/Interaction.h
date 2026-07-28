@@ -36,7 +36,33 @@ struct interaction_parameters
   double   Ek;              //!< Interacting particle kinetic energy.
   double   Ekeff;           //!< Interacting particle effective kinetic energy.
   double   freepath;        //!< Current free path of the interacting particle.
-  particle p2;              //!< Target nucleon from nucleus.
+  particle p2;              //!< Final target nucleon used in the collision.
+  bool     use_consistent_target = false;
+  bool     target_selected = false;
+  bool     has_neutron_target = false;
+  bool     has_proton_target = false;
+  bool     selected_target_reversed = false;
+  int      selected_target_pdg = 0;
+
+  particle p2_neutron;
+  particle p2_proton;
+
+  double   Ekeff_n_forward = 0.0;
+  double   Ekeff_n_reverse = 0.0;
+  double   Ekeff_p_forward = 0.0;
+  double   Ekeff_p_reverse = 0.0;
+
+  double   xsec_n_forward = 0.0;
+  double   xsec_n_reverse = 0.0;
+  double   xsec_p_forward = 0.0;
+  double   xsec_p_reverse = 0.0;
+
+  double   xsec_n_pair = 0.0;
+  double   xsec_p_pair = 0.0;
+
+  double   selected_target_xsec = 0.0;
+  double   target_sample_r = 0.0;
+  double   selected_target_sample_kf = 0.0;
   particle p[5];            //!< Results of scattering.
   int      n;               //!< Number of particles after scattering.
 
@@ -67,7 +93,7 @@ inline int kod(int i)
     case 30: return 15; // hyperon (quasi)elastic
     case 31: return 16; // hyperon lambda -> sigma
     case 32: return 17; // hyperon sigma -> lambda
-	
+
     case 99: return 9;
     case 100: return 10;
     default: throw "invalid interaction code";
@@ -86,14 +112,14 @@ inline int kod(int i)
 
 inline bool below(double &x,double val)
 {
-  if(x<val) {x/=val;    return true; } ///<<renormalize x  
-  else      {x/=(1-val);return false;} ///<<renormalize x  
+  if(x<val) {x/=val;    return true; } ///<<renormalize x
+  else      {x/=(1-val);return false;} ///<<renormalize x
 }
 //! one should use "if(above(x,val))" instead of "if(not below(x,val))"
 inline bool above(double &x,double val)
 {
-  if(x>=val) {x/=(1-val); return true; } ///<<renormalize x  
-  else       {x/=val;     return false;} ///<<renormalize x  
+  if(x>=val) {x/=(1-val); return true; } ///<<renormalize x
+  else       {x/=val;     return false;} ///<<renormalize x
 }
 
 ////////////////////////////////////////
@@ -120,7 +146,7 @@ struct channel{double dist;const char* codes;};
 ////////////////////////////////////////
 
 //! Reaction channel
-/*! choose reaction channel from table a[] 
+/*! choose reaction channel from table a[]
     according to probability distribution a[?].dist
     and fill p with particles according to codes string */
 
@@ -129,7 +155,7 @@ inline void doit(int& n,const channel a[],particle p[])
   if(a->dist<1)
   {
     double x=frandom();
-    while(x>=a->dist) 
+    while(x>=a->dist)
       ++a;
   }
   const char *c=a->codes;
@@ -146,7 +172,7 @@ inline void doit(int& n,const channel a[],particle p[])
       default:cerr<<"doit: Invalid process: n="<<n<<" \""<<a->codes<<"\""<<endl;exit(27);
     }
   }
-} 
+}
 
 
 ////////////////////////////////////////
@@ -154,7 +180,7 @@ inline void doit(int& n,const channel a[],particle p[])
 ////////////////////////////////////////
 
 class PiData
-{ 
+{
 private:
     int k2;
 	double Ek;
@@ -171,7 +197,7 @@ const double *E, *s[3], *F[3], *Fc[3],
              *A[3], *B[3], *Cel[3], *Cinel[3], *Fp[3], *F2p;
 private:
 	inline double dval(const double *V)
-	{		
+	{
 		if(nD==1)
 			return V[iE];
 		int j=iE*nD+iD;
@@ -179,10 +205,10 @@ private:
 		return (1-aD)*V[j]+aD*V[j+1];
 	}
 	inline double dval2(const double *V)
-	{ 
+	{
   	    if(nD==1)
 			return (1-aE)*V[iE]+aE*V[iE+1];
-		int j=iE*nD+iD; 
+		int j=iE*nD+iD;
 //		int j=iE*nD+iD-1; //?? Sprawdzić
 		return ((1-aD)*V[j]+aD*V[j+1])*(1-aE) // V[iE][iD] , V[iE][iD+1]
 		      +((1-aD)*V[j+nD]+aD*V[j+nD+1])*aE; // V[iE+1][iD] , V[iE+1][iD+1]
@@ -207,24 +233,24 @@ private:
 			start = 140;
 			end = 209;
 		}
-		
+
 		int bin = 0;
-		
+
 		if (Ek <= piAngle[start][0]) return piAngle[start][z];
 		if (Ek >= piAngle[end][0]) return piAngle[end][z];
-		
+
 		for (int i = start; start < end; i++)
 		{
 			if (Ek > piAngle[i][0] and Ek <= piAngle[i+1][0])
 			{
-				bin = i;				
+				bin = i;
 				break;
 			}
 		}
-		
+
 		double E2 = piAngle[bin+1][0] - Ek;
 		double E1 = Ek - piAngle[bin][0];
-		
+
 		return (E1*piAngle[bin+1][z] + E2*piAngle[bin][z])/(E1+E2);
 	}
 	void dump(const double *V)
@@ -235,9 +261,9 @@ private:
 	      if(nD>1) cout<<setw(8)<<E[i]<<": ";
 		  for(int j=0;j<max(nD,1);j++)
 	        cout<<setw(10)<<V[i*max(nD,1)+j]<<' ';
-	       if (nD>1) cout<<endl; 
+	       if (nD>1) cout<<endl;
 	    }
-       cout<<endl; 
+       cout<<endl;
 	}
 	void dump()
 	{
@@ -249,11 +275,11 @@ private:
 //              echo(B[0]);echo(B[1]);echo(B[2]);
 //              echo(Cel[0]);echo(Cel[1]);echo(Cel[2]);
 //              echo(Cinel[0]);echo(Cinel[1]);echo(Cinel[2]);
-//              echo(Fp[0]);echo(Fp[1]);echo(Fp[2]); 
+//              echo(Fp[0]);echo(Fp[1]);echo(Fp[2]);
 //              echo(F2p);
      }
 public:
- 
+
   PiData(int k);
   void setMetropolis();
   void set(double tab[11][16][26],double tab2[6][29]);
@@ -268,7 +294,7 @@ public:
 	  {   if(nD==1)
 			 {aD=0; iD=0;}
 		  else
-		  {   
+		  {
 			double x=min(1.0,dens/maxdens)*(nD-1);
 			iD=min(int(x),nD-2);
 			aD=x-iD;
@@ -277,33 +303,33 @@ public:
 	  }
   void set_particles(particle &p1,particle& p2)
 	{
-		if(p1==PiZero) ij=2; 
-		else if((p1==PiPlus && p2==Proton )|| 
+		if(p1==PiZero) ij=2;
+		else if((p1==PiPlus && p2==Proton )||
 	            (p1==PiMinus && p2==Neutron)) ij=0;
 		else ij=1;
     }
-    
+
     double cel(){return dval(Cel[ij]);}
 	double cinel(){return dval(Cinel[ij]);}
 
 
 	double a1(bool cex)
-	{	
-		//return 0;	
+	{
+		//return 0;
 		return angle_par(cex, 1); //cex = false for elastic and true for CEX
-	} 
+	}
 	double a2(bool cex)
 	{
 		//return 0;
 		return angle_par(cex, 2);
-	} 
+	}
 	double a3(bool cex)
 	{
 		//return 0;
 		return angle_par(cex, 3);
 	}
 	double a4(bool cex)
-	{		  
+	{
 		//if (cex and Ek < 51) return 1.5;
 		//if (cex) return dval(A[0]);
 		//return dval(A[ij]);
@@ -333,21 +359,21 @@ public:
 		//return 1;
 		return angle_par(cex, 8);
 	}
-		
+
   double finel(){return dval(F[ij]);}    //dval2 or dval - skalowanie z energią lub bez
-  double fce(){return dval(Fc[ij]);}    
+  double fce(){return dval(Fc[ij]);}
   double fp(){return dval(Fp[ij]);}
   double f2p(){return dval(F2p);}
   double fabs_inel() // absorption/inelastic
 	  {//cout<<"ij="<<ij<<" i="<<i<<" iD="<<iD<<"["<<s[ij][i*nD+iD]<<"]"<< " {"<<sij(0)<<','<<sij(1)<<','<<sij(2)<<")"<<endl;
-		  switch(ij) 
+		  switch(ij)
 			{case 0: return 0;
 			 case 1: {double x=sij(2);return x/(x+sij(1));}
 			 case 2: {double x=sij(2);return x/(x+sij(0)+sij(1));}
-             default: return 0;        
+             default: return 0;
 			}
-            
-	   } 
+
+	   }
 
 	double sigma ()
      {switch(ij)
@@ -356,7 +382,7 @@ public:
         case 1: return (sij(1)+sij(2))*millibarn;
         case 2: return (sij(0)+sij(1)+sij(2))/2.0*millibarn;
         default: return 0;
-       } 
+       }
       }
 
   int process_id() { return pion_+k2; }
@@ -365,27 +391,27 @@ public:
 	                     "pion spp","pion dpp",
 	                     "pion tpp","pion abs"};
 	   if(k2<6) return name[k2];
-	   else return NULL;                   
+	   else return NULL;
 	  }
 	inline double sij(int i);
 	inline bool pion_scattering (particle & p1, particle & p2, nucleus &t,
 						   int &n, particle p[], double dens); //p1-moving pion ,p2-target nucleon
-	inline bool pion_abs (particle& p1, particle& p2, nucleus & t, int &n, particle p[]); 
+	inline bool pion_abs (particle& p1, particle& p2, nucleus & t, int &n, particle p[]);
 	inline bool pion_elastic (particle& p1, particle& p2,  int &n, particle p[]);
 	inline bool pion_ce (particle& p1, particle& p2,  int &n, particle p[]);
-	inline bool pion_spp (particle& p1, particle& p2, int &n, particle p[]);    
-	inline bool pion_dpp (particle& p1, particle& p2, int &n, particle p[]);	
-	inline bool pion_tpp (particle& p1, particle& p2, int &n, particle p[]);    
+	inline bool pion_spp (particle& p1, particle& p2, int &n, particle p[]);
+	inline bool pion_dpp (particle& p1, particle& p2, int &n, particle p[]);
+	inline bool pion_tpp (particle& p1, particle& p2, int &n, particle p[]);
 };
 ///////////////////////////////////////////////////////////
 
-  /// Cross section for pion - nucleon scattering   
+  /// Cross section for pion - nucleon scattering
   /// k = 0  // ii
   /// k = 1  // ij
   /// k = 2  // abs
-  /// Ek = kinetic energy 
+  /// Ek = kinetic energy
 double PiData::sij (int k)
-{ 
+{
     if (Ek <= 49*MeV && xsec==0)
       {	// Low energy Metropolis formula
         double x = Ek / PDG::mass_pi;
@@ -397,7 +423,7 @@ double PiData::sij (int k)
 					return (16.4 * (0.14 / p + p));
 		}
         return 0;
-	}  
+	}
 	else
 		return max(0.0,dval2(s[k]));
 }
@@ -405,11 +431,11 @@ double PiData::sij (int k)
 ///////////////////////////////////////////////////////////
 bool PiData::pion_scattering (particle & p1, particle & p2, nucleus &t,
 		       int &n, particle p[], double dens)
-  { 
+  {
     set_particles(p1,p2);
     set_density(dens);
     int canal=((p1==PiPlus)-(p1==PiMinus))*2+(p2==Proton)+2;
-    
+
     vec  v = p2.v();
     assert ( v*v<1 && " pion  ");
     double Ekm = p1.Ek_in_frame (-v);
@@ -428,7 +454,7 @@ bool PiData::pion_scattering (particle & p1, particle & p2, nucleus &t,
     if(frandom()<fabs_inel() and canal != 0 and canal != 5)
        return pion_abs (p1, p2, t, n, p);
     if(frandom()>=finel())
-       return pion_elastic (p1, p2, n, p); 
+       return pion_elastic (p1, p2, n, p);
     if(canal != 0 && canal != 5 && frandom()<fce())
        return pion_ce  (p1, p2, n, p)
             ||pion_elastic(p1, p2, n, p);
@@ -436,23 +462,23 @@ bool PiData::pion_scattering (particle & p1, particle & p2, nucleus &t,
 	     return pion_spp (p1, p2, n, p)
 	        ||pion_ce(p1, p2, n, p)
             ||pion_elastic(p1, p2, n, p);
-    if (frandom() < f2p()) 	
+    if (frandom() < f2p())
           return pion_dpp (p1, p2, n, p)
                ||pion_spp(p1, p2, n, p)
                ||pion_ce(p1, p2, n, p)
-               ||pion_elastic(p1, p2, n, p);	
+               ||pion_elastic(p1, p2, n, p);
 	else
 		return pion_tpp (p1, p2, n, p)
 		     ||pion_dpp (p1, p2, n, p)
 		     ||pion_spp (p1, p2, n, p)
-             ||pion_ce(p1, p2, n, p)	
-             ||pion_elastic(p1, p2, n, p);	
-			
+             ||pion_ce(p1, p2, n, p)
+             ||pion_elastic(p1, p2, n, p);
+
   }
 ///////////////////////////////////////////////////////////
 bool PiData::pion_elastic (particle& p1, particle& p2,  int &n, particle p[])
-  {  
-	n = 2;  
+  {
+	n = 2;
 	k2=elastic_;
 	p[0]=p1;
 	p[1]=p2;
@@ -461,12 +487,12 @@ bool PiData::pion_elastic (particle& p1, particle& p2,  int &n, particle p[])
 ///////////////////////////////////////////////////////////
 /// pion charge exchange
 bool PiData::pion_ce (particle& p1, particle& p2, int &n, particle p[])
-  {  
+  {
  	   k2=ce_;
-	   
+
 	   int canal=((p1==PiPlus)-(p1==PiMinus))*2+(p2==Proton)+2;
 	   if(canal==0 || canal==5) return 0;
-		
+
 	   static const channel cnls[6][1]=
 	   {{{1,"ee"}},//-n
 		  {{1,".n"}},//-p
@@ -476,7 +502,7 @@ bool PiData::pion_ce (particle& p1, particle& p2, int &n, particle p[])
 		  {{1,"ff"}} //+p
 	   };
 	   doit(n,cnls[canal],p);
-			return scatterAB (p1, p2, p[0], p[1], a1(1), a2(1), a3(1), a4(1), a5(1), a6(1), a7(1), a8(1)); 
+			return scatterAB (p1, p2, p[0], p[1], a1(1), a2(1), a3(1), a4(1), a5(1), a6(1), a7(1), a8(1));
   }
 
 ///////////////////////////////////////////////////////////
@@ -499,17 +525,17 @@ bool PiData::pion_spp (particle& p1, particle& p2, int &n, particle p[])
 	doit(n,cnls[canal],p);
     return scatter_n (n, p1, p2, p);
   }
-  
+
 ///////////////////////////////////////////////////////////
 /// pion double pion production
 bool PiData::pion_dpp (particle& p1, particle& p2, int &n, particle p[])	// p[2], p[3] are pions
 {
 	k2=dpp_;
-    int canal = ((p1==PiPlus)-(p1==PiMinus))*2+(p2==Proton)+2;    
+    int canal = ((p1==PiPlus)-(p1==PiMinus))*2+(p2==Proton)+2;
 
 //    static const double f1o[2] = {1.0/3.0, 2.0/3.0}; // pi0
     static const double f1[2] = {0.5,0.75};         // pi charged
-    static const double f2[3] = {0.25, 0.50, 0.75};   
+    static const double f2[3] = {0.25, 0.50, 0.75};
 
 	static const channel cnls[6][4]=
 	{{{f1[0],"-n-+"},{f1[1],"-n.."},{    1,"-p-."},{1,"    "}},//-n
@@ -518,7 +544,7 @@ bool PiData::pion_dpp (particle& p1, particle& p2, int &n, particle p[])	// p[2]
 	 {{f2[0],"+n.."},{f2[1],"+n+-"},{f2[2],"+p-."},{1,".p.."}},//.p
 	 {{f2[0],"+n.."},{f2[1],"+n+-"},{f2[2],"+p-."},{1,".p.."}},//+n
 	 {{f1[0],"+p+-"},{f1[1],"+p.."},{    1,"+n+."},{1,"    "}} //+p
-	};	
+	};
     doit(n,cnls[canal],p);
     return scatter_n (n, p1, p2, p);
 }
@@ -528,10 +554,10 @@ bool PiData::pion_tpp (particle& p1, particle& p2, int &n, particle p[])
 {
 	k2=tpp_;
     int canal = ((p1==PiPlus)-(p1==PiMinus))*2+(p2==Proton)+2;
-        
+
     static const double f1[3] = {0.25, 0.5, 0.75};
     static const double f2[4] = {0.2, 0.4, 0.6, 0.8};
-   
+
 	static  const channel cnls[6][5]=
 	{{{f1[0],"-n..."},{f1[1],"-n-+."},{f1[2],"-p-.."},{    1,"-p-+-"},{0,"     "}},//-n
 	 {{f2[0],".n..."},{f2[1],".n+-."},{f2[2],"+n-+-"},{f2[3],"-p..."},{1,"-p+-."}},//-p
@@ -546,15 +572,15 @@ bool PiData::pion_tpp (particle& p1, particle& p2, int &n, particle p[])
 ///////////////////////////////////////////////////////////
 /// pion absorption on a pair of nucleons
 bool PiData::pion_abs (particle& p1, particle& p2, nucleus & t, int & n, particle p[])
-  { 
+  {
 	static particle p2a, p3a;
 	if(t.Ar()<2) return 0;
-    n=2;  
+    n=2;
 	k2=abs_;
-    
+
     //int canal = ((p1==PiPlus)-(p1==PiMinus))*2+(p2==Proton)+2;
-    //switch(canal)  
-    //{ case 0: case 5: return 0; // no absorbtion for (pi- n) and (pi+ p) 
+    //switch(canal)
+    //{ case 0: case 5: return 0; // no absorbtion for (pi- n) and (pi+ p)
     //}
     /* old version
 	if(!t.remove_nucleon(p2))
@@ -564,32 +590,32 @@ bool PiData::pion_abs (particle& p1, particle& p2, nucleus & t, int & n, particl
     t.insert_nucleon(p2);       // stop pretending :)
     p[0] = p2;
     p[1] = p2a;
-    
+
     if (p1.pdg == pdg_piP && p2.pdg == pdg_neutron)
       p[0].set_proton ();
     else if (p1.pdg == -pdg_piP && p2.pdg == pdg_proton)
       p[0].set_neutron ();
     end old version
-    */ 
+    */
     p2a = t.get_nucleon (p1.r);	// get nucleon from this place in Nucleus
     p2a.pdg = pdg_proton;
     p3a.pdg = pdg_neutron;
     p[0] = p2;
     p[1] = p2a;
-    
+
     if (p1.pdg == pdg_piP)
     {
-    if ( frandom ()<7.0/8.0 ) 
-    { p[0].set_proton (); 
-      p[1].set_proton (); 
+    if ( frandom ()<7.0/8.0 )
+    { p[0].set_proton ();
+      p[1].set_proton ();
       if (p2.pdg==pdg_proton)
       t.remove_nucleon(p3a);
       if (p2.pdg==pdg_neutron)
       t.remove_nucleon(p2a);
     }
-      else 
-      { p[0].set_neutron (); 
-        p[1].set_proton (); 
+      else
+      { p[0].set_neutron ();
+        p[1].set_proton ();
 	if (p2.pdg==pdg_proton)
 	{t.remove_nucleon(p3a);
 	t.remove_nucleon(p3a);
@@ -599,20 +625,20 @@ bool PiData::pion_abs (particle& p1, particle& p2, nucleus & t, int & n, particl
         t.remove_nucleon(p3a);
        }
       }
-      
+
       if (p1.pdg == -pdg_piP)
     {
-    if ( frandom ()<7.0/8.0 ) 
-    { p[0].set_neutron (); 
-      p[1].set_neutron (); 
+    if ( frandom ()<7.0/8.0 )
+    { p[0].set_neutron ();
+      p[1].set_neutron ();
       if (p2.pdg==pdg_neutron)
       t.remove_nucleon(p2a);
       if (p2.pdg==pdg_proton)
       t.remove_nucleon(p3a);
     }
-      else 
-      { p[0].set_neutron (); 
-        p[1].set_proton (); 
+      else
+      { p[0].set_neutron ();
+        p[1].set_proton ();
 	if (p2.pdg==pdg_neutron)
 	{t.remove_nucleon(p2a);
 	t.remove_nucleon(p2a);
@@ -622,22 +648,22 @@ bool PiData::pion_abs (particle& p1, particle& p2, nucleus & t, int & n, particl
         t.remove_nucleon(p2a);
        }
       }
-      
+
       if (p1.pdg == 111)//p2a=proton p3a=neutron
     {
-    if ( frandom ()<4.0/5.0 ) 
-    { p[0].set_neutron (); 
-      p[1].set_proton (); 
+    if ( frandom ()<4.0/5.0 )
+    { p[0].set_neutron ();
+      p[1].set_proton ();
       if (p2.pdg==pdg_neutron)
       t.remove_nucleon(p2a);
       if (p2.pdg==pdg_proton)
       t.remove_nucleon(p3a);
     }
-      else 
-      { 
-	if ( frandom ()<0.5 ) 
+      else
+      {
+	if ( frandom ()<0.5 )
 	{
-	  p[0].set_neutron (); 
+	  p[0].set_neutron ();
           p[1].set_neutron ();
 	  if (p2.pdg==pdg_neutron)
       t.remove_nucleon(p3a);
@@ -649,7 +675,7 @@ bool PiData::pion_abs (particle& p1, particle& p2, nucleus & t, int & n, particl
 	}
 	else
 	{
-	  p[0].set_proton (); 
+	  p[0].set_proton ();
           p[1].set_proton ();
 	  if (p2.pdg==pdg_proton)
       t.remove_nucleon(p2a);
@@ -667,17 +693,17 @@ bool PiData::pion_abs (particle& p1, particle& p2, nucleus & t, int & n, particl
     if ( frandom ()<7.0/8.0 ) { p[0].set_neutron (); p[1].set_neutron (); }
       else { p[0].set_proton (); p[1].set_neutron (); }
     }
-    
+
     if (p1.pdg == 111)
     {
     if ( frandom ()<0.8 ) { p[0].set_neutron (); p[1].set_proton (); }
-      else { 
-	
+      else {
+
 	p[0].set_proton (); p[1].set_neutron (); }
     }
     */
-    
-    
+
+
     //cout<<"abs"<<"  "<<endl;
     return ::decay (p1 + p2 + p2a, p[0], p[1]);
   }
@@ -701,7 +727,7 @@ class Interaction
   int ij;                                     //!< Type of target: 0 - same, 1 - different.
   PiData PD;                                  //!< Storage of pion experimental cross sections.
 
-  public: 
+  public:
     Interaction(data_container* _NN_xsec, data_container* _NN_inel, data_container* _NN_angle,
                 int xsec_piN):
                 NN_xsec(_NN_xsec), NN_inel(_NN_inel), NN_angle(_NN_angle),
@@ -724,8 +750,8 @@ class Interaction
     int process_id()                          //! Returns the process id.
     {
       if(k1==hyperon_)  return hyperon_process_id(); // C Thorpe: Added hyperon process ids
-    
-      return k1==nucleon_ ? nucleon_process_id() : PD.process_id(); 
+
+      return k1==nucleon_ ? nucleon_process_id() : PD.process_id();
     }
     const char* process_name()                //! Returns the process name.
     {
@@ -737,13 +763,22 @@ class Interaction
   private:
     void   get_NN_xsec( double Ek, double &resii, double &resij );
                                               //!< Reads the NN cross sections from data.
+    double nucleon_target_cross_section( particle &p1, particle &p2,
+                                         double dens, double projectile_Ek, double &Ekeff);
+                                              //!< Cross section for one fixed
+                                              //!< nucleon target, using that
+                                              //!< same target momentum.
     double get_NN_xsec_ij( double Ek );
                                               //!< Returns the NN (ii/ij) cross sections from data.
     double NN_xsec_parametrization_0( double x, bool ij );
                                               //!< N. Metropolis et al., Phys.Rev. 110 (1958) 185-203
     double NN_xsec_parametrization_3( double x, bool ij );
                                               //!< // J. Cugnon et al., Nucl.Instrum.Meth. B111 (1996) 215-220
-    bool   nucleon_scattering( particle& p1, particle& p2, int &n, particle p[] );
+    bool   nucleon_scattering( particle& p1, particle& p2,
+                               int &n,
+                               particle p[],
+                               bool fixed_target_orientation,
+                               double fixed_Ekeff);
                                               //!< Scatters particles p1, p2 into n particles in p[].
     bool   nucleon_elastic(    particle& p1, particle& p2, int &n, particle p[] );
                                               //!< Elastic scattering of p1, p2.
