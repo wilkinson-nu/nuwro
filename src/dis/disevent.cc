@@ -169,22 +169,19 @@ double Meff2=Meff*Meff;
 //      Setting Pythia parameters
 //      Done by Jaroslaw Nowak
 //////////////////////////////////////////////
+      
 
-
-//stabilne pi0
-      pythia22->SetMDCY (pycomp_ (&pizero), 1, 0);
-
-	//C Thorpe: Stabalize hyperons
-      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Lambda) , 1, 0);
-      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Sigma) , 1, 0);
-      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::SigmaP) , 1, 0);
-      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::SigmaM) , 1, 0);
-
-      // C Thorpe: Stablize kaons
-      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Kplus) , 1, 0);
-      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Kzero) , 1, 0);
-      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Kminus) , 1, 0);
-
+      // CW 26/07/28: make the choice of particles to decay configurable
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::pizero), 1, p.decay_pi_zero);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::eta) , 1, p.decay_eta);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Lambda) , 1, p.decay_lambda_zero);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Sigma) , 1, p.decay_sigma_zero);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::SigmaP) , 1, p.decay_sigma_plus);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::SigmaM) , 1, p.decay_sigma_minus);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Kplus) , 1, p.decay_k_plus);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Kzero) , 1, p.decay_k_zero);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Kzerob) , 1, p.decay_k_zero_bar);
+      pythia22->SetMDCY ( pycomp_ (&DIS_PDG::Kminus) , 1, p.decay_k_minus);
 
       pythia22->SetMSTU (20, 1);	//advirsory warning for unphysical flavour switch off
       pythia22->SetMSTU (23, 1);	//It sets counter of errors at 0

@@ -26,7 +26,7 @@ inline int pdg2spp(const int pdg) {
 }
 
 //! set up PYTHIA6 parameters
-TPythia6* get_pythia();
+TPythia6* get_pythia(params &p);
 
 //! get id-th particle from pythia's particle list
 particle get_pythia_particle(Pyjets_t* pythia_particles, const int particle_id, res_kinematics kin);

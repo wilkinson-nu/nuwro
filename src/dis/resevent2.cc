@@ -104,7 +104,7 @@ void resevent2(params &p, event &e, nucleus &t, bool cc) {
   } else  // W above pythia threshold and fromdis > 0
   {
     // the algorithm starts from the production of PYTHIA event
-    TPythia6 *pythia71 = get_pythia();
+    TPythia6 *pythia71 = get_pythia(p);
 
     int nof_particles = 0;       // number of particles in the final state
     Pyjets_t *pythia_particles;  // pythia particles placeholder
@@ -206,13 +206,23 @@ void resevent2(params &p, event &e, nucleus &t, bool cc) {
   for (int j = 0; j < e.out.size(); j++) e.out[j].r = e.in[1].r;
 }
 
-TPythia6 *get_pythia() {
+TPythia6 *get_pythia(params &p) {
   TPythia6 *pythia71 = new TPythia6();
 
   // Setting Pythia parameters - done by Jaroslaw Nowak
 
   // stable pi0
-  pythia71->SetMDCY(pycomp_(&pizero), 1, 0);
+  //pythia71->SetMDCY(pycomp_(&pizero), 1, 0);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::pizero), 1, p.decay_pi_zero);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::eta) , 1, p.decay_eta);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::Lambda) , 1, p.decay_lambda_zero);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::Sigma) , 1, p.decay_sigma_zero);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::SigmaP) , 1, p.decay_sigma_plus);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::SigmaM) , 1, p.decay_sigma_minus);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::Kplus) , 1, p.decay_k_plus);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::Kzero) , 1, p.decay_k_zero);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::Kzerob) , 1, p.decay_k_zero_bar);
+  pythia71->SetMDCY ( pycomp_ (&DIS_PDG::Kminus) , 1, p.decay_k_minus);
 
   pythia71->SetMSTU(20, 1);  // advirsory warning for unphysical flavour switch off
   pythia71->SetMSTU(23, 1);  // It sets counter of errors at 0

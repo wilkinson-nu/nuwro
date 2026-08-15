@@ -141,4 +141,15 @@ PARAM(double,res_dis_blending_end,1900)\
 PARAM(string,table_path,"")\
 PARAM(bool,kaskada_events,0)\
 PARAM(string,kaskada_events_file,"")\
+PARAM(bool,kaskada_hyperon_on,1)\
+PARAM(bool,decay_pi_zero,0)\
+PARAM(bool,decay_eta,1)\
+PARAM(bool,decay_sigma_minus,0)\
+PARAM(bool,decay_lambda_zero,0)\
+PARAM(bool,decay_sigma_zero,0)\
+PARAM(bool,decay_sigma_plus,0)\
+PARAM(bool,decay_k_plus,0)\
+PARAM(bool,decay_k_zero,0)\
+PARAM(bool,decay_k_zero_bar,1)\
+PARAM(bool,decay_k_minus,0)\
 
