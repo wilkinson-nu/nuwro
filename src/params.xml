@@ -637,6 +637,40 @@
     </condition>
     </conditions>
   </param>
+  <!-- C. Wilkinson 26/07/28: make the choice of particles that PYTHIA decays configurable -->
+  <param name="kaskada_hyperon_on" type="checkbox" ctype="bool" default="1">
+    <description> Choose whether to include hyperons in the cascade</description>
+  </param>
+  <param name="decay_pi_zero" type="checkbox" ctype="bool" default="0">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = 111</description>
+  </param>
+  <param name="decay_eta" type="checkbox" ctype="bool" default="1">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = 211</description>
+  </param>
+  <param name="decay_sigma_minus" type="checkbox" ctype="bool" default="0">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = 3112</description>
+  </param>
+  <param name="decay_lambda_zero" type="checkbox" ctype="bool" default="0">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = 3122</description>
+  </param>
+  <param name="decay_sigma_zero" type="checkbox" ctype="bool" default="0">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = 3212</description>
+  </param>
+  <param name="decay_sigma_plus" type="checkbox" ctype="bool" default="0">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = 3222</description>
+  </param>
+  <param name="decay_k_plus" type="checkbox" ctype="bool" default="0">
+    <description> Choose whether to ask PYTHIA to decay (1 or not decay (0) PDG = 321</description>
+  </param>
+  <param name="decay_k_zero" type="checkbox" ctype="bool" default="0">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = 311</description>
+  </param>
+  <param name="decay_k_zero_bar" type="checkbox" ctype="bool" default="1">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = -311</description>
+  </param> 
+  <param name="decay_k_minus" type="checkbox" ctype="bool" default="0">
+    <description> Choose whether to ask PYTHIA to decay (1) or not decay (0) PDG = -321</description>
+  </param>
 </params>
 
 <!--

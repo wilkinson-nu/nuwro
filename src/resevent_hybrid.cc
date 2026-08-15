@@ -364,7 +364,7 @@ void resevent_hybrid(params &p, event &e, nucleus& t, bool cc) // free nucleon o
   } else // W above pythia threshold and fromdis > 0
   {
     // the algorithm starts from the production of PYTHIA event
-    TPythia6 *pythia71 = get_pythia();
+    TPythia6 *pythia71 = get_pythia(p);
 
     int nof_particles = 0;      // number of particles in the final state
     Pyjets_t *pythia_particles; // pythia particles placeholder

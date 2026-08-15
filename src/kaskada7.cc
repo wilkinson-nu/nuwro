@@ -597,7 +597,7 @@ void kaskada::prepare_particles()
 
     }
 
-    else if(hyperon (p1.pdg)) // if a hyperon
+    else if(hyperon (p1.pdg) and par.kaskada_hyperon_on) // if a hyperon
     {
       // Add BE
       if(par.nucleus_target) p1.set_fermi(nucl->hyp_BE(p1.r.length(),p1.pdg));
